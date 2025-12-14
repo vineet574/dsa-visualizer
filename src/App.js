@@ -1,6 +1,11 @@
 import { useState, useRef } from "react";
 
 function App() {
+  /* ================= GLOBAL ================= */
+  const [mode, setMode] = useState("sorting"); // sorting | stack | queue
+  const [dark, setDark] = useState(false);
+
+  /* ================= SORTING / SEARCHING ================= */
   const [numbers, setNumbers] = useState([5, 3, 8, 1, 4]);
   const [activeIndices, setActiveIndices] = useState([]);
   const [algorithm, setAlgorithm] = useState("bubble");
@@ -10,7 +15,6 @@ function App() {
   const [foundIndex, setFoundIndex] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [dark, setDark] = useState(false);
   const [size, setSize] = useState(6);
 
   const pauseRef = useRef(false);
@@ -24,6 +28,13 @@ function App() {
     return new Promise((r) => setTimeout(r, ms));
   };
 
+  function resetStats() {
+    setActiveIndices([]);
+    setComparisons(0);
+    setSwaps(0);
+    setFoundIndex(null);
+  }
+
   function generateArray(n = size) {
     const arr = [];
     for (let i = 0; i < n; i++) {
@@ -33,15 +44,7 @@ function App() {
     resetStats();
   }
 
-  function resetStats() {
-    setActiveIndices([]);
-    setComparisons(0);
-    setSwaps(0);
-    setFoundIndex(null);
-  }
-
   /* ================= SORTS ================= */
-
   async function bubbleSort() {
     let arr = [...numbers];
     for (let i = 0; i < arr.length; i++) {
@@ -97,8 +100,6 @@ function App() {
     }
   }
 
-  /* ================= SEARCH ================= */
-
   async function linearSearch() {
     const target = numbers[0];
     for (let i = 0; i < numbers.length; i++) {
@@ -124,7 +125,6 @@ function App() {
       setActiveIndices([mid]);
       setComparisons((c) => c + 1);
       await sleep(speed);
-
       if (arr[mid] === target) {
         setFoundIndex(mid);
         return;
@@ -132,8 +132,6 @@ function App() {
       arr[mid] < target ? (low = mid + 1) : (high = mid - 1);
     }
   }
-
-  /* ================= CONTROLLER ================= */
 
   async function start() {
     setIsRunning(true);
@@ -165,106 +163,195 @@ function App() {
     setIsRunning(false);
   }
 
+  /* ================= STACK ================= */
+  const [stack, setStack] = useState([]);
+  const pushStack = () =>
+    setStack([...stack, Math.floor(Math.random() * 50) + 1]);
+  const popStack = () => stack.length && setStack(stack.slice(0, -1));
+
+  /* ================= QUEUE ================= */
+  const [queue, setQueue] = useState([]);
+  const enqueue = () =>
+    setQueue([...queue, Math.floor(Math.random() * 50) + 1]);
+  const dequeue = () => queue.length && setQueue(queue.slice(1));
+
+  /* ================= COMPLEXITY MAP ================= */
+  const complexityMap = {
+    bubble: { time: "O(n²)", space: "O(1)" },
+    selection: { time: "O(n²)", space: "O(1)" },
+    insertion: { time: "O(n²)", space: "O(1)" },
+    linear: { time: "O(n)", space: "O(1)" },
+    binary: { time: "O(log n)", space: "O(1)" },
+    stack: { time: "O(1)", space: "O(n)" },
+    queue: { time: "O(1)", space: "O(n)" }
+  };
+
+  /* ================= CURRENT COMPLEXITY ================= */
+  const currentComplexity =
+    mode === "sorting"
+      ? complexityMap[algorithm]
+      : complexityMap[mode];
+
+  /* ================= UI ================= */
   return (
     <div
       style={{
-        background: dark ? "#121212" : "#ffffff",
-        color: dark ? "#ffffff" : "#000000",
+        background: dark ? "#121212" : "#fff",
+        color: dark ? "#fff" : "#000",
         minHeight: "100vh",
-        padding: "20px",
+        padding: "20px"
       }}
     >
-      <h1>DSA Visualizer</h1>
+      <h1>DSA Visualizer & Problem-Solving Platform</h1>
 
       <button onClick={() => setDark((d) => !d)}>Dark Mode</button>
 
-      <br />
-      <br />
+      <br /><br />
 
-      <select
-        value={algorithm}
-        onChange={(e) => setAlgorithm(e.target.value)}
-        disabled={isRunning}
-      >
-        <option value="bubble">Bubble Sort</option>
-        <option value="selection">Selection Sort</option>
-        <option value="insertion">Insertion Sort</option>
-        <option value="linear">Linear Search</option>
-        <option value="binary">Binary Search</option>
-      </select>
+      <button onClick={() => setMode("sorting")}>Sorting</button>
+      <button onClick={() => setMode("stack")}>Stack</button>
+      <button onClick={() => setMode("queue")}>Queue</button>
 
-      <p>
-        Comparisons: {comparisons} | Swaps: {swaps}
-      </p>
+      <hr />
 
-      <label>Speed</label>
-      <input
-        type="range"
-        min="50"
-        max="1000"
-        step="50"
-        value={speed}
-        onChange={(e) => setSpeed(Number(e.target.value))}
-      />
-
-      <label style={{ marginLeft: "20px" }}>Array Size</label>
-      <input
-        type="range"
-        min="4"
-        max="15"
-        value={size}
-        onChange={(e) => {
-          const val = Number(e.target.value);
-          setSize(val);
-          generateArray(val);
-        }}
-      />
-
-      <br />
-      <br />
-
-      <button onClick={start} disabled={isRunning}>
-        Start
-      </button>
-      <button onClick={pauseResume} disabled={!isRunning}>
-        {paused ? "Resume" : "Pause"}
-      </button>
-      <button onClick={stop}>Stop</button>
-      <button onClick={() => generateArray()}>New Array</button>
-
-      {/* ===== BAR GRAPH ===== */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          marginTop: "30px",
-        }}
-      >
-        {numbers.map((n, i) => (
-          <div
-            key={i}
-            style={{
-              width: "32px",
-              height: `${n * 10}px`,
-              margin: "4px",
-              background:
-                foundIndex === i
-                  ? "green"
-                  : activeIndices.includes(i)
-                  ? "tomato"
-                  : "steelblue",
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "center",
-              color: "white",
-              fontSize: "12px",
-              fontWeight: "bold",
-            }}
+      {mode === "sorting" && (
+        <>
+          <select
+            value={algorithm}
+            onChange={(e) => setAlgorithm(e.target.value)}
+            disabled={isRunning}
           >
-            {n}
+            <option value="bubble">Bubble Sort</option>
+            <option value="selection">Selection Sort</option>
+            <option value="insertion">Insertion Sort</option>
+            <option value="linear">Linear Search</option>
+            <option value="binary">Binary Search</option>
+          </select>
+
+          <p>
+            <strong>Time Complexity:</strong> {currentComplexity.time} &nbsp; | &nbsp;
+            <strong>Space Complexity:</strong> {currentComplexity.space}
+          </p>
+
+          <p>Comparisons: {comparisons} | Swaps: {swaps}</p>
+
+          <label>Speed</label>
+          <input
+            type="range"
+            min="50"
+            max="1000"
+            step="50"
+            value={speed}
+            onChange={(e) => setSpeed(+e.target.value)}
+          />
+
+          <label style={{ marginLeft: "20px" }}>Array Size</label>
+          <input
+            type="range"
+            min="4"
+            max="15"
+            value={size}
+            onChange={(e) => {
+              setSize(+e.target.value);
+              generateArray(+e.target.value);
+            }}
+          />
+
+          <br /><br />
+
+          <button onClick={start} disabled={isRunning}>Start</button>
+          <button onClick={pauseResume} disabled={!isRunning}>
+            {paused ? "Resume" : "Pause"}
+          </button>
+          <button onClick={stop}>Stop</button>
+          <button onClick={() => generateArray()}>New Array</button>
+
+          <div style={{ display: "flex", alignItems: "flex-end", marginTop: "30px" }}>
+            {numbers.map((n, i) => (
+              <div
+                key={i}
+                style={{
+                  width: "32px",
+                  height: `${n * 10}px`,
+                  margin: "4px",
+                  background:
+                    foundIndex === i
+                      ? "green"
+                      : activeIndices.includes(i)
+                      ? "tomato"
+                      : "steelblue",
+                  display: "flex",
+                  alignItems: "flex-end",
+                  justifyContent: "center",
+                  color: "white",
+                  fontSize: "12px",
+                  fontWeight: "bold"
+                }}
+              >
+                {n}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
+
+      {mode === "stack" && (
+        <>
+          <h2>Stack (LIFO)</h2>
+          <p>
+            <strong>Time:</strong> {currentComplexity.time} |{" "}
+            <strong>Space:</strong> {currentComplexity.space}
+          </p>
+          <button onClick={pushStack}>Push</button>
+          <button onClick={popStack}>Pop</button>
+
+          <div style={{ marginTop: "20px" }}>
+            {stack.map((v, i) => (
+              <div
+                key={i}
+                style={{
+                  width: "80px",
+                  margin: "5px",
+                  padding: "10px",
+                  background: "steelblue",
+                  color: "white"
+                }}
+              >
+                {v}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {mode === "queue" && (
+        <>
+          <h2>Queue (FIFO)</h2>
+          <p>
+            <strong>Time:</strong> {currentComplexity.time} |{" "}
+            <strong>Space:</strong> {currentComplexity.space}
+          </p>
+          <button onClick={enqueue}>Enqueue</button>
+          <button onClick={dequeue}>Dequeue</button>
+
+          <div style={{ display: "flex", marginTop: "20px" }}>
+            {queue.map((v, i) => (
+              <div
+                key={i}
+                style={{
+                  width: "60px",
+                  margin: "5px",
+                  padding: "10px",
+                  background: "teal",
+                  color: "white"
+                }}
+              >
+                {v}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
